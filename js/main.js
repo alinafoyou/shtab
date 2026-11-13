@@ -17,10 +17,12 @@
   A.route = () => { const p = location.hash.replace(/^#\/?/, '').split('/'); return { name: p[0] || '', arg: p[1] || '' }; };
 
   A.render = function () {
-    const root = document.getElementById('app'), s = A.s, u = A.user(), r = A.route();
-    document.documentElement.dataset.theme = s.settings.theme;
-    document.querySelector('meta[name=theme-color]').content = s.settings.theme === 'dark' ? '#0F1115' : '#F6F5F1';
-    if (!u) { root.innerHTML = A.views.login(); document.title = 'ШТАБ — вход'; return; }
+    const root = document.getElementById('app'), s = A.s, r = A.route();
+    const theme = s ? s.settings.theme : 'dark';
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name=theme-color]').content = theme === 'dark' ? '#0F1115' : '#F6F5F1';
+    if (!A.account || !s) { root.innerHTML = A.views.login(); document.title = 'ШТАБ — вход'; return; }
+    const u = A.user();
     if (!u.consent) { root.innerHTML = A.consentHtml(); return; }
     const nav = A.nav(), cur = PARENT[r.name] || r.name;
     const ok = A.views[r.name] && r.name !== 'login' && (nav.some((n) => n[0] === cur));
@@ -78,12 +80,25 @@
   document.addEventListener('drop', (e) => { const z = e.target.closest && e.target.closest('[data-drop]'); if (z) { e.preventDefault(); A.setStage(e.dataTransfer.getData('text/plain'), z.dataset.drop); } });
   window.addEventListener('hashchange', () => { A.closeModal(); A.render(); window.scrollTo(0, 0); });
 
-  // ----- старт -----
-  A.load(); if (!A.s) { A.s = A.seed(); A.save(); }
-  const t = A.today();
-  if (A.isWorkday(t) && !A.s.attendance.some((a) => a.date === t)) { A.demoDay(A.s, t); A.save(); }
-  const r0 = A.route();
-  if (r0.name === 'invite') { const u = A.byId(A.s.users, r0.arg); if (u) A.s.session.userId = u.id; location.hash = '#/'; }
-  A.render(); A.fetchLive();
+  // ----- старт: кто вошёл и его данные -----
+  A.boot = async function () {
+    document.getElementById('app').innerHTML = '<div class="login"><p class="muted">Загрузка…</p></div>';
+    A.s = null; A.ui.authErr = '';
+    try { A.account = (await A.api('GET', 'me')).user; A.lsSet('shtab.last', A.account); }
+    catch (e) {
+      A.account = null;
+      if (!e.status) { const last = A.lsGet('shtab.last'); if (last && last.id) A.account = last; else A.ui.authErr = 'Нет связи с сервером. Проверьте интернет.'; } // офлайн: работаем с копией на устройстве
+    }
+    if (A.account) {
+      try { await A.loadState(); } catch (e) { A.account = null; A.s = null; A.ui.authErr = e.status ? e.message : 'Нет связи с сервером. Проверьте интернет.'; }
+    }
+    if (A.s) {
+      const t = A.today();
+      if (A.isWorkday(t) && !A.s.attendance.some((a) => a.date === t)) { A.demoDay(A.s, t); A.save(); }
+      A.fetchLive();
+    }
+    A.render();
+  };
+  A.boot();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

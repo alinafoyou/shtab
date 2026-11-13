@@ -24,10 +24,51 @@
   A.fd = (form) => Object.fromEntries(new FormData(form).entries());
   A.go = (hash) => { if (location.hash === hash) A.render(); else location.hash = hash; };
 
-  // ---------- хранение ----------
-  A.load = () => { try { const raw = localStorage.getItem(KEY); const s = raw && JSON.parse(raw); if (s && s.v === 1) A.s = s; } catch (e) { A.s = null; } };
-  A.save = () => { try { localStorage.setItem(KEY, JSON.stringify(A.s)); } catch (e) { /* хранилище недоступно — работаем в памяти */ } };
-  A.reset = () => { A.s = A.seed(); A.save(); };
+  // ---------- хранение: данные аккаунта на сервере + копия на устройстве ----------
+  A.account = null;
+  A.lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+  A.lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* нет места или хранилище запрещено */ } };
+  A.lsDel = (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } };
+  A.lsDel(KEY); // старое демо-хранилище без аккаунтов
+  const cacheKey = () => 'shtab.cache.' + (A.account ? A.account.id : '');
+  A.api = async (method, path, body) => {
+    const r = await fetch('/api/' + path, { method, credentials: 'same-origin', headers: Object.assign({ 'X-Shtab': '1' }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+    let j = null; try { j = await r.json(); } catch (e) { j = null; }
+    if (!r.ok) { const err = new Error((j && j.error) || 'Ошибка сервера (' + r.status + ')'); err.status = r.status; throw err; }
+    return j;
+  };
+  let ver = 0, pushedVer = 0, timer = null, inflight = null;
+  A.syncState = 'ok';
+  const setSync = (st) => { if (st === 'offline' && A.syncState !== 'offline') A.toast('Нет связи с сервером. Изменения сохранены на устройстве и отправятся позже.'); A.syncState = st; };
+  async function push() {
+    if (!A.account || !A.s || ver === pushedVer) return;
+    if (inflight) { await inflight; return push(); }
+    const v = ver;
+    inflight = A.api('PUT', 'state', { data: A.s }).then(() => {
+      pushedVer = v; if (ver === v) A.lsSet(cacheKey(), { data: A.s, dirty: false }); setSync('ok');
+    }).catch((e) => {
+      if (e.status === 401) { A.account = null; A.s = null; A.render(); A.toast('Сессия закончилась — войдите снова. Несохранённые изменения остались на устройстве.'); return; }
+      setSync('offline'); clearTimeout(timer); timer = setTimeout(push, 15000);
+    }).finally(() => { inflight = null; });
+    return inflight;
+  }
+  A.save = () => { if (!A.s || !A.account) return; ver++; A.lsSet(cacheKey(), { data: A.s, dirty: true }); clearTimeout(timer); timer = setTimeout(push, 700); };
+  A.flush = async () => { clearTimeout(timer); await push(); return ver === pushedVer; };
+  window.addEventListener('pagehide', () => { if (A.account && A.s && ver !== pushedVer) { try { fetch('/api/state', { method: 'PUT', keepalive: true, credentials: 'same-origin', headers: { 'X-Shtab': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ data: A.s }) }); } catch (e) { /* останется в копии на устройстве */ } } });
+  A.fresh = () => { const s = A.seed(), o = s.users.find((u) => u.role === 'owner'); o.name = A.account.name; o.email = A.account.email; s.session.userId = o.id; return s; };
+  A.loadState = async () => {
+    const cache = A.lsGet(cacheKey()), valid = (d) => d && d.v === 1 && Array.isArray(d.users);
+    ver = pushedVer = 0;
+    if (cache && cache.dirty && valid(cache.data)) { A.s = cache.data; ver = 1; push(); } // есть неотправленные изменения с этого устройства
+    else {
+      try { const r = await A.api('GET', 'state'); A.s = valid(r.data) ? r.data : null; }
+      catch (e) { if (e.status || !cache || !valid(cache.data)) throw e; A.s = cache.data; setSync('offline'); }
+      if (!A.s) { A.s = A.fresh(); A.save(); } else A.lsSet(cacheKey(), { data: A.s, dirty: false });
+    }
+    const o = A.s.users.find((u) => u.role === 'owner'); A.s.session.userId = o.id;
+  };
+  A.forget = () => { A.lsDel(cacheKey()); A.lsDel('shtab.last'); ver = pushedVer = 0; };
+  A.reset = () => { A.s = A.fresh(); A.save(); };
 
   // ---------- пользователь и права (PRD §5) ----------
   A.user = () => A.s.users.find((u) => u.id === A.s.session.userId) || null;

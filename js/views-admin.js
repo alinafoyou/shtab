@@ -4,25 +4,51 @@
   const ROLE = { owner: 'Владелец', assistant: 'Ассистент', employee: 'Сотрудник' };
   const MODS = [['companyFinance', '💼 Деньги компаний'], ['personalFinance', '👤 Личные деньги'], ['team', '👥 Команда онлайн'], ['fitness', '🏋️ Фитнес'], ['languages', '🇯🇵 Языки'], ['nutrition', '🍽 Питание'], ['spirit', '🕌 Духовность'], ['journal', '📓 Дневник']];
 
+  A.ui.auth = 'login';
   A.views.login = function () {
-    const demo = [['u0', 'Владелец', 'Видит всё'], ['u1', 'Ассистент', 'Без дневника и личных денег'], ['e1', 'Сотрудник', 'Только свои проекты и статус']];
+    const reg = A.ui.auth === 'register';
     return `<div class="login"><div class="card stack">
       <div><div class="logo" style="padding:0 0 6px">ШТАБ<span>.</span></div><p class="muted">Вся жизнь руководителя — на одном экране</p></div>
-      <div><h3 style="margin-bottom:8px">Войти в демо как</h3><div class="stack" style="gap:8px">${demo.map(([id, r, d]) => { const u = A.byId(A.s.users, id); return `<button type="button" class="btn" style="justify-content:flex-start;height:auto;padding:10px 14px;text-align:left" data-act="loginAs" data-id="${id}">${A.avatar(u)}<span><b>${esc(u.name)}</b> · ${r}<span class="muted xs" style="display:block;font-weight:500">${d}</span></span></button>`; }).join('')}</div></div>
-      <details><summary class="muted sm">Вход по email или телефону</summary><form class="form" data-act="loginOtp"><label class="f">Email или телефон<input name="login" required placeholder="owner@shtab.demo"></label><label class="f">Код из сообщения<input name="code" inputmode="numeric" placeholder="любые 4 цифры" required pattern="[0-9]{4,6}"></label><button class="btn pri">Войти</button><p class="muted xs">В демо код не отправляется: подойдёт любой. Настоящий OTP и 2FA требуют сервера.</p></form></details>
-      <p class="muted xs">Данные демо хранятся только в этом браузере. <a class="gold" href="index.html">← На сайт</a></p></div></div>`;
+      ${A.seg([['login', 'Вход'], ['register', 'Регистрация']], A.ui.auth, 'authTab')}
+      <form class="form" data-act="${reg ? 'authRegister' : 'authLogin'}" novalidate>
+        ${reg ? '<label class="f">Имя и фамилия<input name="name" required maxlength="80" autocomplete="name"></label>' : ''}
+        <label class="f">Email<input type="email" name="email" required maxlength="254" autocomplete="email" inputmode="email"></label>
+        <label class="f">Пароль${reg ? ' (не короче 8 символов)' : ''}<input type="password" name="password" required maxlength="200" autocomplete="${reg ? 'new-password' : 'current-password'}"></label>
+        ${reg ? '<label class="f">Пароль ещё раз<input type="password" name="password2" required maxlength="200" autocomplete="new-password"></label>' : ''}
+        <p class="c-r sm" id="authErr" role="alert">${esc(A.ui.authErr || '')}</p>
+        <button class="btn pri">${reg ? 'Создать аккаунт' : 'Войти'}</button>
+      </form>
+      ${reg ? '<p class="muted xs">Новый аккаунт начинается с демо-данных, чтобы было на чём осмотреться. Всё можно менять под себя: данные видите только вы.</p>' : ''}
+      <p class="muted xs"><a class="gold" href="index.html">← На сайт</a></p></div></div>`;
   };
-  const enter = (u) => {
-    A.s.session.userId = u.id; A.log('Сессия', 'Вход');
-    location.hash = u.role === 'employee' ? '#/team/board' : '#/pulse';
+  const authErr = (msg) => { A.ui.authErr = msg; const p = document.getElementById('authErr'); if (p) p.textContent = msg; };
+  async function auth(form, kind) {
+    const v = A.fd(form), btn = form.querySelector('button.pri');
+    if (!v.email.trim() || !v.password) return authErr('Заполните email и пароль');
+    if (kind === 'register') {
+      if (!v.name.trim()) return authErr('Укажите имя');
+      if (v.password.length < 8) return authErr('Пароль должен быть не короче 8 символов');
+      if (v.password !== v.password2) return authErr('Пароли не совпадают');
+    }
+    btn.disabled = true; authErr('');
+    try {
+      await A.api('POST', kind, { email: v.email.trim(), password: v.password, name: (v.name || '').trim() });
+      await A.boot();
+      if (A.s) { A.log('Сессия', kind === 'register' ? 'Регистрация' : 'Вход'); A.save(); }
+    } catch (e) { authErr(e.status ? e.message : 'Нет связи с сервером. Проверьте интернет.'); btn.disabled = false; }
+  }
+  A.actions.authTab = (el) => { A.ui.auth = el.dataset.v; A.ui.authErr = ''; };
+  A.actions.authLogin = (form) => { auth(form, 'login'); return false; };
+  A.actions.authRegister = (form) => { auth(form, 'register'); return false; };
+  A.actions.logout = () => {
+    (async () => {
+      if (A.s) { A.log('Сессия', 'Выход'); A.save(); }
+      if (A.s && A.account && !(await A.flush())) { A.toast('Не удалось сохранить последние изменения на сервере. Проверьте связь и попробуйте выйти ещё раз.'); return; }
+      try { await A.api('POST', 'logout'); } catch (e) { /* сессия всё равно забывается на устройстве */ }
+      A.forget(); A.account = null; A.s = null; A.ui.auth = 'login'; A.ui.authErr = ''; A.closeModal(); location.hash = '#/login'; A.render();
+    })();
+    return false;
   };
-  A.actions.loginAs = (el) => { const u = A.byId(A.s.users, el.dataset.id); if (u) enter(u); };
-  A.actions.loginOtp = (form) => {
-    const v = A.fd(form), u = A.s.users.find((x) => x.email === v.login.trim().toLowerCase() || (x.phone && x.phone === v.login.trim()));
-    if (!u) { A.toast('Пользователь не найден. Попросите владельца прислать приглашение.'); return false; }
-    enter(u);
-  };
-  A.actions.logout = () => { A.log('Сессия', 'Выход'); A.s.session.userId = null; location.hash = '#/login'; };
   A.actions.consentOk = () => { A.user().consent = true; A.log('Согласие', 'Принято согласие на обработку данных'); };
 
   A.consentHtml = () => `<div class="login"><div class="card stack"><h2>Какие данные о вас собирает ШТАБ</h2>
@@ -46,7 +72,7 @@
     }).join('');
     const invite = `<div class="card"><h3>Пригласить участника</h3><form class="form" data-act="inviteAdd"><label class="f">Имя и фамилия<input name="name" required></label><label class="f">Email или телефон<input name="contact" required></label><div class="f2"><label class="f">Роль<select name="role">${A.opts(isOwner ? [['employee', 'Сотрудник'], ['assistant', 'Ассистент']] : [['employee', 'Сотрудник']])}</select></label><label class="f">Компания<select name="companyId">${A.opts(s.companies.map((c) => [c.id, c.name]))}</select></label></div><label class="f">Должность<input name="title"></label><button class="btn pri" style="justify-self:start">Создать приглашение</button></form>
       ${s.invites.length ? `<div class="list" style="margin-top:10px">${s.invites.slice(-3).reverse().map((i) => `<div class="li"><div class="grow sm">${esc(i.name)}<div class="muted xs" style="word-break:break-all">${esc(i.link)}</div></div><button type="button" class="btn s" data-act="copy" data-v="${esc(i.link)}">Копировать</button></div>`).join('')}</div>` : ''}
-      <p class="muted xs" style="margin-top:8px">При первом входе сотрудник увидит, какие данные о нём собираются, и даст согласие. В демо ссылка не отправляется: войти можно по указанному email с любым кодом.</p></div>`;
+      <p class="muted xs" style="margin-top:8px">Участники команды пока существуют только внутри вашего аккаунта: войти под ними нельзя. Общий доступ для ассистента и сотрудников — следующий этап.</p></div>`;
     const audit = isOwner ? `<div class="card"><h3>Журнал действий</h3><div class="list">${s.audit.slice(0, 25).map((x) => `<div class="li"><span class="muted xs" style="width:88px;flex:none">${new Date(x.at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span><div class="grow sm"><b>${esc(A.short(x.userId))}</b> · ${esc(x.entity)}<div class="muted xs">${esc(x.action)}${x.diff ? ' · ' + esc(x.diff) : ''}</div></div></div>`).join('') || '<p class="muted">Пока пусто.</p>'}</div></div>` : '';
     return `<div class="grid g2"><div class="card"><h3>Участники <span class="muted sm">${s.users.length}</span></h3><div class="list">${members}</div></div><div class="stack">${invite}${audit}</div></div>`;
   };
@@ -99,7 +125,7 @@
       <label class="f">Защищённый слот вокруг намаза, минут<input type="number" name="prayerSlot" min="5" max="60" value="${st.prayerSlot}"></label>
       <button class="btn pri" style="justify-self:start">Сохранить</button></form><p class="muted xs" style="margin-top:8px">Метод ДУМК (Muftyat.kz) пока не подключён — используйте поправку в минутах.</p></div>`;
     const rates = `<div class="card"><h3>Курсы валют к тенге</h3><form class="form" data-act="settingsRates"><div class="grid g3">${A.CUR.filter((c) => c !== 'KZT').map((c) => `<label class="f">${c}<input type="number" step="0.01" min="0.01" name="${c}" value="${st.rates[c]}"></label>`).join('')}</div><button class="btn pri" style="justify-self:start">Сохранить</button></form><p class="muted xs" style="margin-top:8px">Автообновление с Нацбанка РК раз в сутки требует сервера; сейчас курсы вводятся вручную.</p></div>`;
-    const data = `<div class="card"><h3>Данные</h3><p class="muted sm" style="margin-bottom:10px">Всё хранится в этом браузере. Сброс вернёт исходные демо-данные и сотрёт ваши изменения.</p><button type="button" class="btn danger" data-act="resetAsk">Сбросить демо-данные</button></div>`;
+    const data = `<div class="card"><h3>Данные</h3><p class="muted sm" style="margin-bottom:10px">Данные хранятся на сервере в вашем аккаунте (${esc(A.account ? A.account.email : '')}) и видны только вам. Сброс вернёт исходные демо-данные и сотрёт ваши изменения.</p><button type="button" class="btn danger" data-act="resetAsk">Сбросить демо-данные</button></div>`;
     return `<div class="grid g2"><div class="stack">${mods}${gen}${data}</div><div class="stack">${team}${sp}${rates}</div></div>`;
   };
   A.actions.modToggle = (el) => { A.s.settings.modules[el.dataset.k] = el.checked; A.log('Настройки', 'Модуль ' + el.dataset.k, el.checked ? 'вкл' : 'выкл'); };
