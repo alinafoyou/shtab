@@ -1,0 +1,16 @@
+{
+  "name": "ШТАБ — командный центр руководителя",
+  "short_name": "ШТАБ",
+  "description": "Вся жизнь руководителя — на одном экране",
+  "lang": "ru",
+  "start_url": "app.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F1115",
+  "theme_color": "#0F1115",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

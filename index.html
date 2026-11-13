@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0F1115">
+  <meta name="description" content="ШТАБ — командный центр руководителя: проекты, деньги компаний и личные, команда онлайн, спорт, языки и дневник на одном экране.">
+  <title>ШТАБ — вся жизнь руководителя на одном экране</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+  <style>
+    .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+    .lnav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+    .hero{padding:56px 0 64px}
+    .hero h1{font-size:clamp(34px,6.4vw,64px);line-height:1.05;max-width:15ch}
+    .hero h1 em{font-style:normal;color:var(--gold)}
+    .hero p.lead{font-size:18px;color:var(--muted);max-width:52ch;margin:20px 0 28px}
+    section{padding:48px 0;border-top:1px solid var(--line)}
+    section>h2{font-size:28px;margin-bottom:8px}
+    section>p.sub{color:var(--muted);margin-bottom:26px;max-width:60ch}
+    .mock{margin-top:44px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .mock .card b{display:block;font-size:34px;font-weight:800;line-height:1.1}
+    .price{font-size:40px;font-weight:800;letter-spacing:-.02em}
+    .plan.best{border-color:var(--gold)}
+    .plan ul{padding:0;margin:14px 0 18px;list-style:none;display:grid;gap:8px;color:var(--muted)}
+    .plan li::before{content:'✓ ';color:var(--gold);font-weight:800}
+    .ico{font-size:26px;margin-bottom:10px;display:block}
+    footer{padding:28px 0 48px;color:var(--muted);font-size:13px;border-top:1px solid var(--line)}
+    @media(max-width:899px){.mock{grid-template-columns:1fr 1fr 1fr}.mock .card{padding:12px}.mock .card b{font-size:26px}.hero{padding:28px 0 40px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="lnav">
+      <div class="logo" style="padding:0">ШТАБ<span>.</span></div>
+      <nav class="row"><a class="btn ghost s" href="#pricing">Тарифы</a><a class="btn pri" href="app.html#/login">Войти</a></nav>
+    </header>
+
+    <main>
+      <div class="hero">
+        <span class="chip">Для руководителей, у которых 5–15 направлений сразу</span>
+        <h1 style="margin-top:18px">Вся жизнь руководителя — <em>на одном экране</em></h1>
+        <p class="lead">Проекты, деньги компаний и личные, команда, спорт, язык и семья. Без часа в день на сбор статусов по чатам и таблицам.</p>
+        <div class="row"><a class="btn pri" href="app.html#/login" style="min-height:52px;padding:0 26px;font-size:16px">Открыть демо</a><span class="muted sm">14 дней бесплатно · полный функционал</span></div>
+        <div class="mock" aria-label="Пример светофора проектов">
+          <div class="card"><b class="c-g">2</b><span class="muted sm">по плану</span></div>
+          <div class="card"><b class="c-y">4</b><span class="muted sm">риск</span></div>
+          <div class="card"><b class="c-r">2</b><span class="muted sm">горит</span></div>
+        </div>
+      </div>
+
+      <section>
+        <h2>Шесть модулей вместо десяти приложений</h2>
+        <p class="sub">Включайте только нужное: лишние модули отключаются в настройках.</p>
+        <div class="grid g3">
+          <div class="card"><span class="ico" aria-hidden="true">◉</span><h3>Пульс дня</h3><p class="muted" style="margin-top:6px">Top-3, лента дня, светофор проектов, деньги и решения, которые ждут только вас.</p></div>
+          <div class="card"><span class="ico" aria-hidden="true">▦</span><h3>Проекты</h3><p class="muted" style="margin-top:6px">Канбан, таблица, Гант и карта направлений. Проект без обновлений 7 дней желтеет сам.</p></div>
+          <div class="card"><span class="ico" aria-hidden="true">₸</span><h3>Финансы в двух контурах</h3><p class="muted" style="margin-top:6px">Деньги компаний и личные не смешиваются. Связь — только явные переводы.</p></div>
+          <div class="card"><span class="ico" aria-hidden="true">☺</span><h3>Команда онлайн</h3><p class="muted" style="margin-top:6px">Кто работает, кто в отпуске и над чем идёт работа. Без слежки: только отметки и задачи.</p></div>
+          <div class="card"><span class="ico" aria-hidden="true">♡</span><h3>Личное</h3><p class="muted" style="margin-top:6px">Спорт, японский, питание, намаз и время семьи — защищённые слоты, поверх которых не поставят встречу.</p></div>
+          <div class="card"><span class="ico" aria-hidden="true">✎</span><h3>Дневник руководителя</h3><p class="muted" style="margin-top:6px">Минута утром, три вечером и автоматический недельный обзор по пятницам.</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Что говорят первые пользователи</h2>
+        <p class="sub">Отзывы-заглушки: появятся после пилота.</p>
+        <div class="grid g3">
+          <div class="card"><p>«Здесь будет отзыв руководителя о том, сколько времени ушло из сбора статусов».</p><p class="muted sm" style="margin-top:10px">Имя Фамилия · управляющий директор</p></div>
+          <div class="card"><p>«Здесь будет отзыв собственника группы компаний о единой денежной картине».</p><p class="muted sm" style="margin-top:10px">Имя Фамилия · собственник</p></div>
+          <div class="card"><p>«Здесь будет отзыв ассистента о защищённых слотах в календаре».</p><p class="muted sm" style="margin-top:10px">Имя Фамилия · ассистент руководителя</p></div>
+        </div>
+      </section>
+
+      <section id="pricing">
+        <h2>Тарифы</h2>
+        <p class="sub">Триал — 14 дней с полным функционалом.</p>
+        <div class="grid g3">
+          <div class="card plan"><h3>Solo</h3><p class="muted sm">Руководитель</p><div class="price">$15<span class="muted sm"> / мес</span></div><ul><li>1 пользователь</li><li>Все личные модули</li><li>10 проектов</li></ul><a class="btn" href="app.html#/login">Попробовать</a></div>
+          <div class="card plan best"><h3>Team <span class="chip on">популярный</span></h3><p class="muted sm">Руководитель + ассистент + команда</p><div class="price">$49<span class="muted sm"> / мес</span></div><ul><li>До 10 пользователей</li><li>Безлимит проектов</li><li>Telegram-бот</li></ul><a class="btn pri" href="app.html#/login">Попробовать</a></div>
+          <div class="card plan"><h3>Holding</h3><p class="muted sm">Собственник группы</p><div class="price">$199<span class="muted sm"> / мес</span></div><ul><li>До 50 пользователей</li><li>Несколько workspace</li><li>ИИ-обзоры и приоритетная поддержка</li></ul><a class="btn" href="app.html#/login">Попробовать</a></div>
+        </div>
+      </section>
+    </main>
+
+    <footer>ШТАБ · демо-версия MVP. Данные хранятся только в вашем браузере.</footer>
+  </div>
+  <script>if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(function () {});</script>
+</body>
+</html>
